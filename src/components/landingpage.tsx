@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+
+
 import {
   FileAudio,
   FileText,
@@ -9,17 +11,13 @@ import {
   ArrowRight,
   X,
   Calendar,
- 
   User,
-  
   Upload
 } from 'lucide-react';
 import profile from "../assets/profile.png";
 import pp1 from '../assets/PP-1.jpg';
 import pp2 from '../assets/pp-2.jpg';
 import pp3 from '../assets/pp-3.png';
-
-
 
 interface NewsItem {
   title: string;
@@ -48,7 +46,6 @@ const services = [
 
 const policeImages = [pp1, pp2, pp3];
 
-// Mock news data as fallback
 const mockNews: NewsItem[] = [
   {
     title: "New Digital Policing Initiative Launched",
@@ -104,19 +101,15 @@ export const LandingPage = () => {
     witnessName: '',
     witnessPhone: '',
     policeStation: ''
-  });
+  }); 
 
   useEffect(() => {
-    
     const fetchNews = async () => {
       try {
-        // Using NewsAPI with a different approach
-        const response = await fetch('https://newsapi.org/v2/top-headlines?country=in&category=general&apiKey=');//USE THE API KEY FOR REAL DATA
-        
+        const response = await fetch('https://newsapi.org/v2/top-headlines?country=in&category=general&apiKey=');
         if (!response.ok) {
           throw new Error('News API failed');
         }
-        
         const data = await response.json();
         if (data.articles && data.articles.length > 0) {
           const formattedNews = data.articles.slice(0, 6).map((article: any) => ({
@@ -129,13 +122,10 @@ export const LandingPage = () => {
         }
       } catch (error) {
         console.log('Using mock news data');
-       
       }
     };
 
     fetchNews();
-
-    
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % policeImages.length);
     }, 4000);
@@ -165,16 +155,39 @@ export const LandingPage = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('FIR Data:', formData);
-    console.log('Voice Samples:', voiceSamples);
-    console.log('Documents:', documents);
-   
-    alert('FIR submitted successfully! You will receive a confirmation shortly.');
-    setShowFIRForm(false);
-  };
 
+    const form = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      form.append(key, value);
+    });
+    voiceSamples.forEach((file) => {
+      form.append("voiceSamples", file);
+    });
+    documents.forEach((file) => {
+      form.append("documents", file);
+    });
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/submit-fir", {
+        method: "POST",
+        body: form,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit FIR");
+      }
+
+      const data = await response.json();
+      console.log("FIR submitted:", data);
+      alert("FIR submitted successfully! Confirmation will be sent to your email.");
+      setShowFIRForm(false);
+    } catch (error) {
+      console.error("Error submitting FIR:", error);
+      alert("There was an error submitting your FIR. Please try again.");
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-900">
      
