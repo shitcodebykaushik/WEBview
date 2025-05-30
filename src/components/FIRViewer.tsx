@@ -1,33 +1,73 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Download } from 'lucide-react';
-import { FIRData, Translation } from '../types';
 
-interface FIRViewerProps {
-  firData: FIRData;
-  t: Translation;
-}
+const BACKEND_URL = "http://localhost:8000";
 
-export const FIRViewer: React.FC<FIRViewerProps> = ({ firData, t }) => {
+export const FIRViewer: React.FC = () => {
+  const [firId, setFirId] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanId = firId.trim();
+    if (!cleanId) {
+      setError("Please enter a valid FIR ID.");
+      return;
+    }
+
+    const url = `${BACKEND_URL}/get-pdf/${cleanId}`;
+
+    // Check if the PDF exists
+    fetch(url).then(res => {
+      if (res.ok) {
+        setPdfUrl(url);
+        setError(null);
+      } else {
+        setPdfUrl(null);
+        setError("FIR not found.");
+      }
+    }).catch(() => {
+      setPdfUrl(null);
+      setError("Failed to connect to server.");
+    });
+  };
+
   return (
-    <div className="mt-6 animate-fade-in">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-serif font-semibold text-gray-900 dark:text-white">{t.document}</h2>
-        <a
-          href={firData.url}
-          download
-          className="flex items-center space-x-2 text-gov-green-600 dark:text-gov-green-300 hover:text-gov-green-700 dark:hover:text-gov-green-200 group"
-        >
-          <Download className="h-5 w-5 group-hover:scale-110 transition-transform" />
-          <span>{t.download}</span>
-        </a>
-      </div>
-      <div className="border border-gray-200 dark:border-gray-700/50 rounded-xl overflow-hidden bg-white dark:bg-gray-800/95">
-        <iframe
-          src={firData.url}
-          className="w-full h-[600px]"
-          title="FIR Document"
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-xl font-semibold mb-4">Download FIR PDF</h1>
+      <form onSubmit={handleSubmit} className="mb-6 flex gap-4">
+        <input
+          type="text"
+          value={firId}
+          onChange={(e) => setFirId(e.target.value)}
+          placeholder="Enter FIR ID"
+          className="flex-grow border p-2 rounded"
         />
-      </div>
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Fetch
+        </button>
+      </form>
+
+      {error && <p className="text-red-500">{error}</p>}
+
+      {pdfUrl && (
+        <div className="space-y-4">
+          <a
+            href={pdfUrl}
+            download
+            className="inline-flex items-center space-x-2 text-green-600 hover:text-green-800"
+          >
+            <Download className="h-5 w-5" />
+            <span>Download FIR PDF</span>
+          </a>
+          <iframe
+            src={pdfUrl}
+            title="FIR PDF"
+            className="w-full h-[600px] border rounded"
+          />
+        </div>
+      )}
     </div>
   );
 };
